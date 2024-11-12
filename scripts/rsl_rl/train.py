@@ -19,13 +19,17 @@ parser.add_argument(
 )
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
+parser.add_argument("--save_interval", type=int, default=None, help="The number of iterations between saves")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
 parser.add_argument("--max_iterations", type=int, default=None, help="RL Policy training iterations.")
+parser.add_argument("--checkpoint_path", type=str, default=None, help="Relative path to checkpoint file.")
+
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
+
 # always enable cameras to record video
 if args_cli.video:
     args_cli.enable_cameras = True
@@ -44,7 +48,7 @@ from datetime import datetime
 from rsl_rl.runners import OnPolicyRunner
 
 # Import extensions to set up environment tasks
-import ext_template.tasks  # noqa: F401
+import humanoid_tasks  # noqa: F401
 
 from omni.isaac.lab.envs import ManagerBasedRLEnvCfg
 from omni.isaac.lab.utils.dict import print_dict
@@ -62,7 +66,10 @@ def main():
     """Train with RSL-RL agent."""
     # parse configuration
     env_cfg: ManagerBasedRLEnvCfg = parse_env_cfg(
-        args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
+        args_cli.task,
+        device=args_cli.device,
+        num_envs=args_cli.num_envs,
+        use_fabric=not args_cli.disable_fabric, # enable reading of physics buffers directly, default: True, recommended w true when running sim w larger num primitives
     )
     agent_cfg: RslRlOnPolicyRunnerCfg = cli_args.parse_rsl_rl_cfg(args_cli.task, args_cli)
 
@@ -70,6 +77,7 @@ def main():
     log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
     log_root_path = os.path.abspath(log_root_path)
     print(f"[INFO] Logging experiment in directory: {log_root_path}")
+
     # specify directory for logging runs: {time-stamp}_{run_name}
     log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if agent_cfg.run_name:
@@ -80,8 +88,13 @@ def main():
     if args_cli.max_iterations:
         agent_cfg.max_iterations = args_cli.max_iterations
 
+    # svae interval
+    if args_cli.save_interval is not None:
+        agent_cfg.save_interval = args_cli.save_interval
+
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
+
     # wrap for video recording
     if args_cli.video:
         video_kwargs = {
@@ -98,8 +111,10 @@ def main():
 
     # create runner from rsl-rl
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
+
     # write git state to logs
     runner.add_git_repo_to_log(__file__)
+
     # save resume path before creating a new log_dir
     if agent_cfg.resume:
         # get path to previous checkpoint
