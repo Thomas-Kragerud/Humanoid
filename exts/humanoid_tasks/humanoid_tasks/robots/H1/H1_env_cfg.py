@@ -9,7 +9,7 @@ from humanoid_tasks.cfg.humanoid_env_cfg import HumanoidEnvCfg
 from omni.isaac.lab_assets import H1_MINIMAL_CFG  # isort: skip
 from humanoid_tasks.cfg.rough_terrains_cfg import ROUGH_TERRAINS_CFG
 
-from .H1_prim_cfg import TKH1
+from .H1_prim_cfg import TKH1, H1_slider
 
 @configclass
 class H1BaseEnvCfg(HumanoidEnvCfg):

@@ -5,7 +5,8 @@
 
 import gymnasium as gym
 
-from . import H1_env_cfg
+
+from . import H1_env_cfg, H1_box_env_cfg
 from humanoid_tasks.agents.rsl_rl_cfg import H1FlatPPORunnerCfg, H1RoughPPORunnerCfg
 
 ##
@@ -15,8 +16,22 @@ from humanoid_tasks.agents.rsl_rl_cfg import H1FlatPPORunnerCfg, H1RoughPPORunne
 h1_rough_runner_cfg = H1RoughPPORunnerCfg()
 h1_rough_runner_cfg.experiment_name = "h1_velocity_rough"
 
-h1_flat_runner_cfg = H1RoughPPORunnerCfg()
+h1_flat_runner_cfg = H1FlatPPORunnerCfg()
 h1_flat_runner_cfg.experiment_name="h1_velocity_flat"
+
+#h1_box_flat_runner_cfg = H1FlatPPORunnerCfg()
+h1_box_flat_runner_cfg = H1RoughPPORunnerCfg()
+h1_box_flat_runner_cfg.experiment_name = "h1_box_flat"
+
+gym.register(
+    id="h1-box-flat",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": H1_box_env_cfg.H1BoxFlatEnvCfg,
+        "rsl_rl_cfg_entry_point": h1_box_flat_runner_cfg,
+    }
+)
 
 
 gym.register(
